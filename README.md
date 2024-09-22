@@ -1,4 +1,4 @@
-# Implementation of MIA Attacks
+# Implementation of MIA Attacks (PyTorch)
 
 ## Current Attacks
 * LiRA
