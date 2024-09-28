@@ -65,7 +65,8 @@ def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, d
     return model
 
 
-def stable_phi(output, target, num_classes=10):   
+def stable_phi(output, target, num_classes=10):  
+    # works on batch containing 1 sample
     loss=nn.CrossEntropyLoss()(output,target)
     loss=torch.clamp(loss, min=1e-15, max=10.0)
     anti_targets=[]
