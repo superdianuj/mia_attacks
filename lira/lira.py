@@ -65,11 +65,26 @@ def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, d
     return model
 
 
-def stable_phi(loss):
-    loss=max(0.0,loss)
-    exp_term = math.exp(-loss)+1e-15
-    phi = np.log(exp_term) - np.log1p(-exp_term)
+def stable_phi(output, target, num_classes=10):   
+    loss=nn.CrossEntropyLoss()(output,target)
+    loss=torch.clamp(loss, min=1e-15, max=10.0)
+    anti_targets=[]
+    for i in range(num_classes):
+        if i==target[0].item():
+            continue
+        
+        anti_targets.append(torch.tensor([i]).unsqueeze(0).to(device))
+
+    anti_targets=torch.cat(anti_targets)
+        
+    
+    exp_term = torch.exp(-loss)
+    anti_exp_term = torch.exp(-nn.CrossEntropyLoss()(output,anti_targets))
+    positive_term =torch.log(exp_term)
+    negative_term = torch.log(torch.sum(anti_exp_term),dim=0)
+    phi= positive_term-negative_term
     return phi
+
 
 
 # Function to estimate loss distributions using shadow models
@@ -95,8 +110,8 @@ def estimate_loss_distributions(target_data, target_label, shadow_imgs,shadow_la
             model_in.eval()
             with torch.no_grad():
                 output_in = model_in(target_data[omeaga:omeaga+1].to(device))
-                loss_in = nn.CrossEntropyLoss()(output_in, target_label[omeaga:omeaga+1].to(device)).cpu().numpy()
-                in_losses[omeaga].append(stable_phi(loss_in))
+                loss_in = stable_phi(output_in, target_label[omeaga:omeaga+1].to(device)).cpu().numpy()
+                in_losses[omeaga].append(loss_in)
 
             # Exclude the target example from the dataset
             model_out = ShadowModel().to(device)
@@ -106,8 +121,8 @@ def estimate_loss_distributions(target_data, target_label, shadow_imgs,shadow_la
             model_out.eval()
             with torch.no_grad():
                 output_out = model_out(target_data[omeaga:omeaga+1].to(device))
-                loss_out = nn.CrossEntropyLoss()(output_out, target_label[omeaga:omeaga+1].to(device)).cpu().numpy()
-                out_losses[omeaga].append(stable_phi(loss_out))
+                loss_out = stable_phi(output_out, target_label[omeaga:omeaga+1].to(device)).cpu().numpy()
+                out_losses[omeaga].append(loss_out)
 
 
     in_mean_list = [np.mean(losses) for losses in in_losses]
@@ -123,8 +138,7 @@ def membership_inference(model, target_data, target_label, in_mean, in_std, out_
     model.eval()
     with torch.no_grad():
         output = model(target_data.to(device))
-        loss = nn.CrossEntropyLoss()(output, target_label.to(device)).item()
-        loss=stable_phi(loss)
+        loss = stable_phi(output, target_label.to(device)).item()
 
     # Calculate likelihoods assuming Gaussian distributions
     #------Version-1-------------------------------------------------------------------------------------
