@@ -9,7 +9,7 @@ from scipy.stats import norm
 from sklearn.metrics import roc_curve, auc, accuracy_score
 import math
 import matplotlib.pyplot as plt 
-from shadow import *
+from rmia.shadow import *
 
 
 
