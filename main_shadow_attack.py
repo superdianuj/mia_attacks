@@ -67,7 +67,7 @@ if __name__ == "__main__":
         # Train shadow models
         shadow_models = []
         for i in range(num_shadow_models):
-            shadow_model = ShadowModel().to(device)
+            shadow_model = ShadowModel(channel, num_classes).to(device)
             optimizer = optim.Adam(shadow_model.parameters(), lr=learning_rate)
             print(f'\nTraining Shadow Model {i+1}/{num_shadow_models}')
             train_model(shadow_model, shadow_loaders[i], criterion, optimizer, nshadow_num_epochs, device)
