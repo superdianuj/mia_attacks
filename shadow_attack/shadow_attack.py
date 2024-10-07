@@ -90,7 +90,7 @@ def prepare_attack_data(model, data_loader, device, is_member):
     attack_Y = []
     with torch.no_grad():
         for images, labels in data_loader:
-            images = images.view(images.size(0), -1).to(device)
+            images = images.to(device)
             outputs = model(images)
             probs = torch.nn.functional.softmax(outputs, dim=1)
             attack_X.append(probs.cpu())
