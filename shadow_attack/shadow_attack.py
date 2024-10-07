@@ -68,7 +68,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs, device):
     for epoch in range(num_epochs):
         run_loss = 0.0
         for images, labels in train_loader:
-            images = images.view(images.size(0), -1).to(device)
+            images = images.to(device)
             labels = labels.to(device)
             
             outputs = model(images)
