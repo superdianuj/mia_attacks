@@ -9,7 +9,7 @@ from scipy.stats import norm
 from sklearn.metrics import roc_curve, auc, accuracy_score
 import math
 import matplotlib.pyplot as plt 
-from shadow import *
+from lira.shadow import *
 
 
 
@@ -65,27 +65,39 @@ def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, d
     return model
 
 
-def stable_phi(output, target, num_classes=10):  
-    # works on batch containing 1 sample
-    loss=nn.CrossEntropyLoss()(output,target)
-    loss=torch.clamp(loss, min=1e-15, max=10.0)
-    anti_targets=[]
-    for i in range(num_classes):
-        if i==target[0].item():
-            continue
-        
-        anti_targets.append(torch.tensor([i]).unsqueeze(0).to(device))
-
-    anti_targets=torch.cat(anti_targets)
-        
+def stable_phi(output, target, num_classes=10, device=torch.device('cuda')):
+    batch_size = output.size(0)
     
+    # Compute CrossEntropyLoss for the entire batch
+    loss = nn.CrossEntropyLoss(reduction='none')(output, target)
+    loss = torch.clamp(loss, min=1e-15, max=10.0)
+    
+    # Create anti-targets for each sample in the batch
+    anti_targets = []
+    for i in range(batch_size):
+        sample_anti_targets = [j for j in range(num_classes) if j != target[i].item()]
+        anti_targets.append(torch.tensor(sample_anti_targets).to(device))
+    
+    # Compute exp terms
     exp_term = torch.exp(-loss)
-    anti_exp_term = torch.exp(-nn.CrossEntropyLoss()(output,anti_targets))
-    positive_term =torch.log(exp_term)
-    negative_term = torch.log(torch.sum(anti_exp_term),dim=0)
-    phi= positive_term-negative_term
+    
+    # Compute anti_exp_term for each sample
+    anti_exp_term = []
+    for i in range(batch_size):
+        sample_anti_exp = torch.exp(-nn.CrossEntropyLoss(reduction='none')(
+            output[i].unsqueeze(0).repeat(num_classes-1, 1),
+            anti_targets[i]
+        ))
+        anti_exp_term.append(sample_anti_exp)
+    
+    anti_exp_term = torch.stack(anti_exp_term)
+    
+    # Compute phi for each sample
+    positive_term = torch.log(exp_term)
+    negative_term = torch.log(torch.sum(anti_exp_term, dim=1))
+    phi = positive_term - negative_term
+    
     return phi
-
 
 
 # Function to estimate loss distributions using shadow models
