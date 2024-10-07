@@ -141,7 +141,7 @@ def evaluate_attack_model(model, data_loader, device):
     print(f'AUC: {auc:.4f}')
     return auc
 
-def create_attack_loader(shadow_models, target_model, shadow_loaders, shadow_loader_test, attack_batch_size):
+def create_attack_loader(shadow_models, target_model, shadow_loaders, shadow_loader_test, attack_batch_size, device=torch.device('cuda')):
     attack_X = []
     attack_Y = []
     
@@ -168,7 +168,7 @@ def get_model_accuracy(model, data_loader, device):
     total = 0
     with torch.no_grad():
         for images, labels in data_loader:
-            images = images.view(images.size(0), -1).to(device)
+            images = images.to(device)
             labels = labels.to(device)
             
             outputs = model(images)
