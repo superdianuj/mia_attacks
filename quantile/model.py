@@ -2,21 +2,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, SubsetRandomSampler, TensorDataset, ConcatDataset
+from torchvision import transforms
 import numpy as np
-import os
-from sklearn.metrics import classification_report
-import sklearn
-import matplotlib.pyplot as plt
-import seaborn as sns
 import torch.nn.functional as F
+from scipy.stats import norm
+from sklearn.metrics import roc_curve, auc, accuracy_score
+import math
+import matplotlib.pyplot as plt 
 
 
 
-class ShadowModel(nn.Module):
+class CNN(nn.Module):
     def __init__(self, channel, num_classes):
-        super(ShadowModel, self).__init__()
+        super(CNN, self).__init__()
         
         # Convolutional layers
         self.conv1 = nn.Conv2d(channel, 32, kernel_size=3, stride=1, padding=1)
@@ -63,7 +61,5 @@ class ShadowModel(nn.Module):
         x = x.view(x.size(0), -1)
 
         return x
-
-
-
-
+    
+    

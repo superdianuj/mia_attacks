@@ -10,13 +10,22 @@ from sklearn.metrics import classification_report
 import sklearn
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+from torchmetrics.utilities.data import to_onehot
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from sklearn.metrics import roc_curve, auc, accuracy_score
+import torch.nn.functional as F
 from torchvision import datasets, transforms
-from shadow_attack.shadow_attack import *
-from shadow_attack.shadow import *
-from shadow_attack.model import *
+from torch.utils.data import DataLoader, Dataset, TensorDataset
+import warnings
+warnings.filterwarnings("ignore")
+from quantile.model import *
+from quantile.quantile_attack import *
 
-# -----------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------------
 input_shape = (3, 32, 32)
 channel = 3
 num_classes=10
@@ -27,12 +36,15 @@ lr = 1e-3
 perc=0.0   # amount of actual training data available to the attacker
 perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
 meausurement_number=30 
-num_shadow_models=2
-lr_shadow_model=1e-2
-epochs_shadow_model=30
-lr_attack_model=1e-3
-epochs_attack_model=100
-attack_hidden_size=100
+n_quantile=100
+low_quantile=0.01
+high_quantile=0.99
+use_logscale=False
+use_gaussian=False
+batch_size=32
+num_epochs=10
+learning_rate=0.001
+alpha=0.05
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
@@ -53,6 +65,7 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
+
 target_model=CNN(channel, num_classes).to(device)
 if not os.path.exists('target_model.pth'):
     print(f"Training Target Model on CIFAR-10 on Epochs: {epochs}")
@@ -66,7 +79,7 @@ else:
 
 # Calculate training and test accuracy
 train_accuracy = calculate_accuracy(target_model, train_loader, device)
-test_accuracy = calculate_accuracy(target_model, test_loader, device)
+test_accuracy = calculate_accuracy(target_model, test_loader,device)
 print(f"Training Accuracy: {train_accuracy:.2f}%")
 print(f"Test Accuracy: {test_accuracy:.2f}%")
 
@@ -138,18 +151,26 @@ measurement_labels=torch.cat([measurement_train_labels,measurement_test_labels])
 
 print("Measurement Sample Size:",len(measurement_images))
 
-
-scores=run_over_MIA(target_model,
-                        measurement_images,
-                        shadow_images,
-                        shadow_labels, 
-                        num_shadow_models,
-                        epochs_attack_model,
-                        lr_attack_model,
-                        attack_hidden_size,
-                        device)
+auxillary_dataset = TensorDataset(shadow_images, shadow_labels)
+axuillary_loader = DataLoader(auxillary_dataset, batch_size=32, shuffle=True)
 
 
+
+scores= mia_attack(target_model, 
+                    measurement_images, 
+                    measurement_labels, 
+                    axuillary_loader,
+                    n_quantile=n_quantile,
+                    low_quantile=low_quantile,
+                    high_quantile=high_quantile,
+                    use_logscale=use_logscale,
+                    use_gaussian=use_gaussian,
+                    batch_size=batch_size,
+                    num_epochs=num_epochs,
+                    learning_rate=learning_rate,
+                    alpha=alpha,
+                    device=torch.device('cuda')
+                    )
 
 tpr, fpr, roc = roc_curve(measurement_ref, scores)
 print("--------------")
@@ -163,5 +184,5 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig(f'ROC_RMIA.png')
+plt.savefig(f'ROC_Quantile Attack.png')
 

@@ -13,7 +13,6 @@ import seaborn as sns
 import torch.nn.functional as F
 
 
-# I am associating a set of shadow models for each target sample, so for N-samples, I am create N-set of K shadow models
 class CNN(nn.Module):
     def __init__(self, channel, num_classes):
         super(CNN, self).__init__()

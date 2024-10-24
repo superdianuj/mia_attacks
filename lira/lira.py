@@ -15,19 +15,19 @@ from lira.shadow import *
 
 
 
-def get_accuracy(model, data_loader, device='cuda'):
+
+def calculate_accuracy(model, dataloader, device='cpu'):
+    model.eval()
     correct = 0
     total = 0
-    model.eval()
     with torch.no_grad():
-        for data in data_loader:
-            images, labels = data
-            outputs = model(images.to(device))
+        for x, y in dataloader:
+            x, y = x.to(device), y.to(device)
+            outputs = model(x)
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels.to(device)).sum().item()
-    return correct / total*100
-
+            total += y.size(0)
+            correct += (predicted == y).sum().item()
+    return 100 * correct / total
 
 
 
@@ -180,5 +180,5 @@ def run_over_MIA(model,target_data_col,target_label_col,in_mean_col,in_std_col,o
     for i in range(len(target_data_col)):
         result = membership_inference(model, target_data_col[i:i+1], target_label_col[i:i+1], in_mean_col[i], in_std_col[i], out_mean_col[i], out_std_col[i])
         result_col.append(result)
-    return result_col
+    return np.array(result_col)
 

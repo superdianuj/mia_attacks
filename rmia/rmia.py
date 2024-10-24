@@ -13,6 +13,7 @@ from rmia.shadow import *
 
 
 
+
 def get_accuracy(model, data_loader, device='cuda'):
     correct = 0
     total = 0
@@ -27,6 +28,34 @@ def get_accuracy(model, data_loader, device='cuda'):
     return correct / total*100
 
 
+
+def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, device='cuda'):
+    criterion = nn.CrossEntropyLoss()
+    optimizer=torch.optim.Adam(model.parameters(), lr=lr)
+    for epochy in range(training_epochs):
+        for batch in train_loader:
+            data, target = batch[0].to(device), batch[1].to(device)
+            output = model(data) 
+            loss = criterion(output, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+    return model
+
+
+def calculate_accuracy(model, dataloader, device='cpu'):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for x, y in dataloader:
+            x, y = x.to(device), y.to(device)
+            outputs = model(x)
+            _, predicted = torch.max(outputs.data, 1)
+            total += y.size(0)
+            correct += (predicted == y).sum().item()
+    return 100 * correct / total
 
 
 # Function to train a model
@@ -169,7 +198,7 @@ def attack_zone(target_model,
 
         scores.append(C/random_data.size(0))
 
-    return scores
+    return np.array(scores)
 
 
 

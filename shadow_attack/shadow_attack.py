@@ -10,6 +10,7 @@ from sklearn.metrics import classification_report
 import sklearn
 import matplotlib.pyplot as plt
 import seaborn as sns
+from shadow_attack.shadow import *
 
 
 class CustomDataset(torch.utils.data.Dataset):
@@ -27,88 +28,133 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
 
-# Load CIFAR-10 dataset
-def get_data_loaders(batch_size, train_r=0.01, test_r=0.9, num_shadow_models=5):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    
-    train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    test_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-    
-    train_size = len(train_set)
-    indices = list(range(train_size))
-    np.random.shuffle(indices)
-    shadow_split = int(np.floor(train_r * train_size))
+def calculate_accuracy(model, data_loader, device='cuda'):
+    correct = 0
+    total = 0
+    model.eval()
+    with torch.no_grad():
+        for data in data_loader:
+            images, labels = data
+            outputs = model(images.to(device))
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels.to(device)).sum().item()
+    return correct / total*100
 
-    test_size = len(test_set)
-    test_indices = list(range(test_size))
-    np.random.shuffle(test_indices)
-    shadow_split_test = int(np.floor(test_r * test_size))
 
-    train_images = [train_set[i][0] for i in indices]
-    train_labels = [train_set[i][1] for i in indices]
-    test_images = [test_set[i][0] for i in test_indices]
-    test_labels = [test_set[i][1] for i in test_indices]
 
-    shadow_datasets = []
-    for i in range(num_shadow_models):
-        shadow_in=CustomDataset(train_images[:shadow_split],train_labels[:shadow_split])
-        shadow_datasets.append(shadow_in)
-
-    shadow_out=CustomDataset(test_images[:shadow_split_test ],test_labels[:shadow_split_test])
-
-    shadow_loaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True) for dataset in shadow_datasets]
-    target_loader = DataLoader(train_set, batch_size=batch_size)
-    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
-    shadow_loader_test = DataLoader(shadow_out, batch_size=batch_size, shuffle=True)
-    return target_loader, shadow_loaders, test_loader, shadow_loader_test
-
-# Train a model
-def train_model(model, train_loader, criterion, optimizer, num_epochs, device):
-    model.train()
-    for epoch in range(num_epochs):
-        run_loss = 0.0
-        for images, labels in train_loader:
-            images = images.to(device)
-            labels = labels.to(device)
-            
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            
+def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, device='cuda'):
+    criterion = nn.CrossEntropyLoss()
+    optimizer=torch.optim.Adam(model.parameters(), lr=lr)
+    for epochy in range(training_epochs):
+        for batch in train_loader:
+            data, target = batch[0].to(device), batch[1].to(device)
+            output = model(data) 
+            loss = criterion(output, target)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            run_loss += loss.item()
-        
-        if epoch % 10 == 0 or epoch == num_epochs - 1 or epoch == 0:
-            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {run_loss/len(train_loader):.4f}')
+    return model
 
-# Prepare attack data
-def prepare_attack_data(model, data_loader, device, is_member):
+
+
+
+# Function to train a model
+def train_model_with_raw_tensors(model, train_data, train_labels, epochs=100, lr=0.01,bs=128*2, device='cuda'):
+    dataset= torch.utils.data.TensorDataset(train_data, train_labels)
+    train_loader = torch.utils.data.DataLoader(dataset, batch_size=bs, shuffle=True)
+    criterion = nn.CrossEntropyLoss()
+    model.train()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+    for epoch in range(epochs):
+        for batch in train_loader:
+            img, label = batch
+            img, label = img.to(device), label.to(device)
+            optimizer.zero_grad()
+            outputs = model(img)
+            loss = criterion(outputs, label)
+            loss.backward()
+            optimizer.step()
+    return model
+
+
+
+
+
+def get_confidences_shadow_model(model, imgs, labels, device, batch_size=128):
+    data_loader=DataLoader(CustomDataset(imgs, labels), batch_size=batch_size, shuffle=False)
     model.eval()
-    attack_X = []
-    attack_Y = []
+    confidences=[]
     with torch.no_grad():
-        for images, labels in data_loader:
+        for images, _ in data_loader:
             images = images.to(device)
-            outputs = model(images)
-            probs = torch.nn.functional.softmax(outputs, dim=1)
-            attack_X.append(probs.cpu())
-            attack_Y.append(torch.ones(probs.size(0)) if is_member else torch.zeros(probs.size(0)))
-    attack_X = torch.cat(attack_X)
-    attack_Y = torch.cat(attack_Y).long()
-    return attack_X, attack_Y
+            outputs = model.feature(images)
+            confidences.append(outputs.cpu())
+    confidences = torch.cat(confidences)
+    return confidences
+
+
+
+
+def shadow_zone(shadow_imgs,shadow_labs, num_shadow_models=2, epochs=100, lr=0.01, device='cuda'):
+    in_features=[]
+    out_features=[]
+
+    for _ in range(num_shadow_models):
+
+        # split the shadow_imgs and shadow_labs into two parts (random)
+        indices = torch.randperm(shadow_imgs.size(0))
+        shadow_imgs1 = shadow_imgs[indices[:len(indices)//2]]
+        shadow_labs1 = shadow_labs[indices[:len(indices)//2]]
+        shadow_imgs2 = shadow_imgs[indices[len(indices)//2:]]
+        shadow_labs2 = shadow_labs[indices[len(indices)//2:]]
+
+        # Include the target example in the dataset
+        model_in = ShadowModel().to(device)
+        train_data_in = shadow_imgs1
+        train_labels_in = shadow_labs1
+        model_in = train_model_with_raw_tensors(model_in, train_data_in, train_labels_in, epochs, lr)
+        in_features.append(get_confidences_shadow_model(model_in, train_data_in, train_labels_in, device))
+        out_features.append(get_confidences_shadow_model(model_in, shadow_imgs2, shadow_labs2, device))
+    
+
+        # Exclude the target example from the dataset
+        model_out = ShadowModel().to(device)
+        train_data_out=shadow_imgs2
+        train_labels_out = shadow_labs2
+        model_out = train_model_with_raw_tensors(model_out, train_data_out, train_labels_out, epochs, lr)
+        in_features.append(get_confidences_shadow_model(model_out, train_data_in, train_labels_in, device))
+        out_features.append(get_confidences_shadow_model(model_out, shadow_imgs2, shadow_labs2, device))
+
+
+
+
+    in_features = torch.cat(in_features)
+    out_features = torch.cat(out_features)
+
+    return  in_features, out_features
+
+
 
 # Train the attack model
-def train_attack_model(model, train_loader, criterion, optimizer, num_epochs, device):
-    model.train()
+def attack_zone(target_data, target_model, in_features, out_features, num_epochs, lr, attack_hidden_size, device):
+    data=torch.cat([in_features,out_features])
+    labels=torch.tensor([1]*len(in_features)+[0]*len(out_features)).unsqueeze(1).to(device)
+    dataset=TensorDataset(data, labels)
+    train_loader=DataLoader(dataset, batch_size=128, shuffle=True)
+    target_feature=target_model.feature(target_data.unsqueeze(0).to(device))
+    classifier=nn.Sequential(nn.Linear(target_feature.shape[-1],attack_hidden_size),nn.ReLU(),nn.Linear(attack_hidden_size,1),nn.Sigmoid()).to(device) 
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(classifier.parameters(), lr=lr)
+    classifier.train()
     for epoch in range(num_epochs):
         run_loss = 0.0
         for features, labels in train_loader:
             features = features.to(device)
             labels = labels.to(device)
             
-            outputs = model(features)
+            outputs = classifier(features)
             loss = criterion(outputs, labels)
             
             optimizer.zero_grad()
@@ -117,62 +163,28 @@ def train_attack_model(model, train_loader, criterion, optimizer, num_epochs, de
 
             run_loss += loss.item()
         if epoch % 10 == 0 or epoch == num_epochs - 1 or epoch == 0:
-            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {run_loss/len(train_loader):.4f}')
+            print(f'Epoch {epoch+1}/{num_epochs}, Attack Loss: {run_loss/len(train_loader):.4f}')
 
-# Evaluate the attack model
-def evaluate_attack_model(model, data_loader, device):
-    model.eval()
-    true_labels = []
-    pred_labels = []
-    with torch.no_grad():
-        for features, labels in data_loader:
-            features = features.to(device)
-            labels = labels.to(device)
-            
-            outputs = model(features)
-            _, preds = torch.max(outputs, 1)
-            true_labels.append(labels.cpu())
-            pred_labels.append(preds.cpu())
-    
-    true_labels = torch.cat(true_labels)
-    pred_labels = torch.cat(pred_labels)
-    print(classification_report(true_labels, pred_labels, target_names=['Non-Member', 'Member']))
-    auc = sklearn.metrics.roc_auc_score(true_labels, pred_labels)
-    print(f'AUC: {auc:.4f}')
-    return auc
 
-def create_attack_loader(shadow_models, target_model, shadow_loaders, shadow_loader_test, attack_batch_size, device=torch.device('cuda')):
-    attack_X = []
-    attack_Y = []
-    
-    for shadow_model, shadow_loader in zip(shadow_models, shadow_loaders):
-        shadow_X, shadow_Y = prepare_attack_data(shadow_model, shadow_loader, device, is_member=True)
-        attack_X.append(shadow_X)
-        attack_Y.append(shadow_Y)
-    
-    target_X, target_Y = prepare_attack_data(target_model, shadow_loader_test, device, is_member=False)
-    attack_X.append(target_X)
-    attack_Y.append(target_Y)
+    score = classifier(target_feature).item()
+    return score
 
-    attack_X = torch.cat(attack_X)
-    attack_Y = torch.cat(attack_Y)
 
-    attack_dataset = TensorDataset(attack_X, attack_Y)
-    attack_loader = DataLoader(attack_dataset, batch_size=attack_batch_size, shuffle=True)
 
-    return attack_loader
 
-def get_model_accuracy(model, data_loader, device):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for images, labels in data_loader:
-            images = images.to(device)
-            labels = labels.to(device)
-            
-            outputs = model(images)
-            _, preds = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (preds == labels).sum().item()
-    return correct / total * 100
+def membership_inference(target_model, target_data, shadow_images, shadow_labels, num_shadow_models=2, shadow_epochs=100, shadow_lr=0.01,  attack_epochs=100, attack_lr=1e-3, attack_hidden_size=100, device='cuda'):
+    in_features, out_features = shadow_zone(shadow_images, shadow_labels, num_shadow_models, shadow_epochs, shadow_lr, device)
+    score = attack_zone(target_data, target_model, in_features, out_features, attack_epochs, attack_lr, attack_hidden_size, device)
+    return score
+
+
+
+def run_over_MIA(target_model, target_data_col, shadow_images, shadow_labels, num_shadow_models=2, shadow_epochs=100, shadow_lr=0.01,  attack_epochs=100, attack_lr=1e-3, attack_hidden_size=100, device='cuda'):
+    result_col=[]
+    for i in range(len(target_data_col)):
+        target_data=target_data_col[i]
+        result=membership_inference(target_model, target_data, shadow_images, shadow_labels, num_shadow_models, shadow_epochs, shadow_lr,  attack_epochs, attack_lr, attack_hidden_size, device)
+        result_col.append(result)
+    return np.array(result_col)
+
+

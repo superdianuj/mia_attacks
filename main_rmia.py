@@ -7,128 +7,146 @@ import numpy as np
 import torch.nn.functional as F
 from scipy.stats import norm
 from sklearn.metrics import roc_curve, auc, accuracy_score
+from torch.utils.data import DataLoader, SubsetRandomSampler, TensorDataset, ConcatDataset
+from torchvision import datasets, transforms
 import math
+import os
 import matplotlib.pyplot as plt 
 from rmia.shadow import *
 from rmia.rmia import *
 from rmia.model import *
 
 
-mean = [0.5,0.5,0.5]
-std = [0.5,0.5,0.5]
-batch_size=128*2
+#-----------------------------------------------------------------------------------
+input_shape = (3, 32, 32)
 channel = 3
-im_size = (32, 32)
-input_shape=(channel, im_size[0], im_size[1])
-num_classes = 10
-device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-training_epochs= 50
+num_classes=10
 hidden_size = 512
-lr_original_model=1e-3
+output_size = 10
+epochs = 50
+lr = 1e-3
+perc=0.0   # amount of actual training data available to the attacker
+perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
+meausurement_number=30 
 num_shadow_models=2
 lr_shadow_model=1e-2
 epochs_shadow_model=30
-N_train = 20   # num of samples of train to include to testing
-N_test = 20    # num of samples of test to include to testing
-perc_train_in_shadow= 0.1   # perctange of training data in shadow dataset
-perc_test_in_shadow= 0.8   # perctange of test data in shadow dataset
 random_sample_number=100
 gamma=0.5
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#-----------------------------------------------------------------------------------
 
 
+# Load CIFAR-10 dataset
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize(mean=mean, std=std)
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    transforms.Lambda(lambda x: x.view(3, 32, 32))
 ])
 
-dst_train = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                        download=True, transform=transform)
-train_loader = torch.utils.data.DataLoader(dst_train, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
-
-dst_test = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                    download=True, transform=transform)
-test_loader = torch.utils.data.DataLoader(dst_test, batch_size=batch_size,
-                                        shuffle=False, num_workers=2)
-
-total_train_size = len(dst_train)
-total_test_size = len(dst_test)
-dst_train_residual, dst_train_shadow = torch.utils.data.random_split(dst_train, [int((1-perc_train_in_shadow)*total_train_size), total_train_size - int((1-perc_train_in_shadow)*total_train_size)])
-dst_test_residual, dst_test_shadow = torch.utils.data.random_split(dst_test, [int((1-perc_test_in_shadow)*total_test_size) , total_test_size-int((1-perc_test_in_shadow)*total_test_size)])
+train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 
 
-
-# combine dst_train_shadow and dst_test_shadow
-dst_train_shadow = torch.utils.data.ConcatDataset([dst_train_shadow, dst_test_shadow])
-
-
-train_residual_loader = torch.utils.data.DataLoader(dst_train_residual, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
-test_residual_loader = torch.utils.data.DataLoader(dst_test_residual, batch_size=batch_size,
-                                        shuffle=False, num_workers=2)
-
-total_train_size = len(dst_train)
-total_test_size = len(dst_test)
-dst_train_residual, dst_train_shadow = torch.utils.data.random_split(dst_train, [int((1-perc_train_in_shadow)*total_train_size), total_train_size - int((1-perc_train_in_shadow)*total_train_size)])
-dst_test_residual, dst_test_shadow = torch.utils.data.random_split(dst_test, [int((1-perc_test_in_shadow)*total_test_size) , total_test_size-int((1-perc_test_in_shadow)*total_test_size)])
-
-
-
-# combine dst_train_shadow and dst_test_shadow
-dst_train_shadow = torch.utils.data.ConcatDataset([dst_train_shadow, dst_test_shadow])
-
-
-train_residual_loader = torch.utils.data.DataLoader(dst_train_residual, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
-test_residual_loader = torch.utils.data.DataLoader(dst_test_residual, batch_size=batch_size,
-                                        shuffle=False, num_workers=2)
-
-shadow_loader=torch.utils.data.DataLoader(dst_train_shadow, batch_size=batch_size,  
-                                        shuffle=True, num_workers=2)
+batch_size = 128 * 2
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
 
 
-# train original model
-net= CNN(channel, num_classes).to(device)
-train_model_with_loader(net, train_residual_loader, training_epochs=training_epochs, lr=lr_original_model)
-train_acc=get_accuracy(net, train_residual_loader)
-test_acc=get_accuracy(net, test_residual_loader)
-print(f"Train Accuracy: {train_acc}")
-print(f"Test Accuracy: {test_acc}")
+target_model=CNN(channel, num_classes).to(device)
+if not os.path.exists('target_model.pth'):
+    print(f"Training Target Model on CIFAR-10 on Epochs: {epochs}")
+    train_model_with_loader(target_model, train_loader, epochs, lr,device)
+    torch.save(target_model.state_dict(), 'target_model.pth')
 
+else:
+    print("Loading trained Target Model")
+    target_model.load_state_dict(torch.load('target_model.pth'))
+    target_model.to(device)
 
-shadow_imgs=[]
-shadow_labels=[]
-
-for img, label in shadow_loader:
-    shadow_imgs.append(img)
-    shadow_labels.append(label)
-
-shadow_imgs=torch.cat(shadow_imgs)
-shadow_labels=torch.cat(shadow_labels)
+# Calculate training and test accuracy
+train_accuracy = calculate_accuracy(target_model, train_loader, device)
+test_accuracy = calculate_accuracy(target_model, test_loader, device)
+print(f"Training Accuracy: {train_accuracy:.2f}%")
+print(f"Test Accuracy: {test_accuracy:.2f}%")
 
 
 
-train_img = next(iter(train_residual_loader))[0][0:N_train]
-train_label = next(iter(train_residual_loader))[1][0:N_train]
-test_img=next(iter(test_residual_loader))[0][0:N_test]
-test_label=next(iter(test_residual_loader))[1][0:N_test]
+num_samples_train = int(perc*len(train_loader.dataset))
+num_samples_test=int(perc_test*len(test_loader.dataset))
+print("----------------------------------")
+print(f"Attackers knowledge:")
+print(f"Training Dataset Info: {num_samples_train}/{len(train_loader.dataset)} = {num_samples_train/len(train_loader.dataset)*100}%")
+print(f"Testing Dataset Info: {num_samples_test}/{len(test_loader.dataset)} = {num_samples_test/len(test_loader.dataset)*100}%")
+print("----------------------------------")
 
 
-target_img_coll=torch.cat((train_img, test_img))
-target_label_coll=torch.cat((train_label, test_label))
-reference_target=[1]*len(train_img)+[0]*len(test_img)
-reference_target=np.array(reference_target)
+train_images=[]
+train_labels=[]
+for images, labels in train_loader:
+    train_images.append(images)
+    train_labels.append(labels)
+train_images=torch.cat(train_images)
+train_labels=torch.cat(train_labels)
 
-print(f"Using {num_shadow_models} shadow models to estimate loss distributions")
-print(f"Testing Attack on {N_train} train samples and {N_test} test samples")
+if not os.path.exists('original_indices'):
+    original_indices=torch.randperm(len(train_images))
+    torch.save(original_indices,'original_indices')
+else:
+    original_indices=torch.load('original_indices')
+
+indices = original_indices[:num_samples_train]
+anti_indices = original_indices[num_samples_train:num_samples_train+meausurement_number]
+attacker_train_images = train_images[indices]
+attacker_train_labels = train_labels[indices]
+
+measurement_train_images = train_images[anti_indices]
+measurement_train_labels = train_labels[anti_indices]
 
 
-mia_result=RMIA(target_img_coll,
-            target_label_coll,
-            net,
-            shadow_imgs,
+test_images=[]
+test_labels=[]
+for images, labels in test_loader:
+    test_images.append(images)
+    test_labels.append(labels)
+test_images=torch.cat(test_images)
+test_labels=torch.cat(test_labels)
+
+if not os.path.exists('original_indices_test'):
+    original_indices_test=torch.randperm(len(test_images))
+    torch.save(original_indices_test,'original_indices_test')
+else:
+    original_indices_test=torch.load('original_indices_test')
+
+
+indices = original_indices_test[:num_samples_test]
+anti_indices = original_indices_test[num_samples_test:num_samples_test+meausurement_number]
+
+
+attacker_test_images = test_images[indices]
+attacker_test_labels = test_labels[indices]
+
+measurement_test_images = test_images[anti_indices]
+measurement_test_labels = test_labels[anti_indices]
+
+shadow_images=torch.cat([attacker_train_images,attacker_test_images])
+shadow_labels=torch.cat([attacker_train_labels,attacker_test_labels])
+
+
+measurement_images=torch.cat([measurement_train_images,measurement_test_images])
+measurement_ref=np.array([0]*len(measurement_train_images)+[1]*len(measurement_test_images))
+measurement_labels=torch.cat([measurement_train_labels,measurement_test_labels])
+
+print("Measurement Sample Size:",len(measurement_images))
+
+
+scores=RMIA(measurement_images,
+            measurement_labels,
+            target_model,
+            shadow_images,
             shadow_labels,
             num_shadow_models,
             epochs_shadow_model,
@@ -136,13 +154,10 @@ mia_result=RMIA(target_img_coll,
             random_sample_number,
             gamma)
 
-mia_result=np.array(mia_result).astype(np.float32)
-
-
-tpr, fpr, roc = roc_curve(reference_target, mia_result)
-print('AUC:', auc(fpr, tpr))
-
-
+tpr, fpr, roc = roc_curve(measurement_ref, scores)
+print("--------------")
+print(f'AUC: {auc(fpr, tpr)}  |')
+print("-------------")
 plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % auc(fpr, tpr))
 plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 plt.xlim([0.0, 1.0])
@@ -151,5 +166,5 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig('roc_curve.png')
+plt.savefig(f'ROC_RMIA.png')
 
