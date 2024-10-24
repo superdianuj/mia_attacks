@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 
 class ShadowModel(nn.Module):
-    def __init__(self, channel, num_classes):
+    def __init__(self, channel=3, num_classes=10):
         super(ShadowModel, self).__init__()
         
         # Convolutional layers
