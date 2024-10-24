@@ -27,6 +27,39 @@ def calculate_accuracy(model, dataloader, device='cpu'):
     return 100 * correct / total
 
 
+# Function to train a model
+def train_model_with_raw_tensors(model, train_data, train_labels, epochs=100, lr=0.01,bs=128*2, device='cuda'):
+    dataset= torch.utils.data.TensorDataset(train_data, train_labels)
+    train_loader = torch.utils.data.DataLoader(dataset, batch_size=bs, shuffle=True)
+    criterion = nn.CrossEntropyLoss()
+    model.train()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+    for epoch in range(epochs):
+        for batch in train_loader:
+            img, label = batch
+            img, label = img.to(device), label.to(device)
+            optimizer.zero_grad()
+            outputs = model(img)
+            loss = criterion(outputs, label)
+            loss.backward()
+            optimizer.step()
+    return model
+
+
+def train_model_with_loader(model, train_loader, training_epochs=100, lr=0.01, device='cuda'):
+    criterion = nn.CrossEntropyLoss()
+    optimizer=torch.optim.Adam(model.parameters(), lr=lr)
+    for epochy in range(training_epochs):
+        for batch in train_loader:
+            data, target = batch[0].to(device), batch[1].to(device)
+            output = model(data) 
+            loss = criterion(output, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    return model
+
+
 
 def get_probability_vectors(model, dataloader, device):
     prob_vectors = []

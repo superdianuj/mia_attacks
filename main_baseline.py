@@ -12,9 +12,20 @@ import matplotlib.pyplot as plt
 import os
 from torch.utils.data import DataLoader, SubsetRandomSampler, TensorDataset, ConcatDataset
 from torchvision import datasets, transforms
-from optimal.shadow import *
-from optimal.optimal import *
-from optimal.model import *
+from baseline.shadow import *
+from baseline.model import *
+import argparse
+parser = argparse.ArgumentParser(description='MIA')
+parser.add_argument('--choice', type='str', default='loss', help='modality of attack model')
+args = parser.parse_args()
+if args.choice=='loss':
+    from baseline.baseline_loss import *
+elif args.choice=='conf':
+    from baseline.baseline_conf import *
+elif args.choice=='prob':
+    from baseline.baseline_prob import *
+else:
+    raise ValueError("Invalid choice")
 
 
 #-----------------------------------------------------------------------------------
@@ -165,5 +176,5 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig(f'ROC_Optimal Attack.png')
+plt.savefig(f'ROC_Baseline Attack_{args.choice}.png')
 

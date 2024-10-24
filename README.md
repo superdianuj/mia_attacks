@@ -1,7 +1,7 @@
 # Implementation of MIA Attacks (PyTorch)
 
 ## Current Attacks
-* Optimal Attack (Attacker has full knowledge of training and testing losses of target)
+* Baseline Attack (Attacker has full knowledge of training and testing losses/confidence scores/probability vector of target model)
 * Shadow Attack [1]
 * LiRA [2]
 * RMIA [3]
@@ -10,9 +10,11 @@
 
 ## Commands
 
-### Optimal Attack
+### Baseline Attack
 ```code
-python main_optimal.py
+python main_baseline.py --choice loss
+python main_baseline.py --choice conf
+python main_baseline.py --choice prob
 ```
 
 ### Shadow Attack
