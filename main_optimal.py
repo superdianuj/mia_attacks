@@ -30,7 +30,7 @@ perc_test=0.20    # amount of testing data available to the attacker ( similar d
 meausurement_number=30 
 attack_lr=1e-3
 attack_epochs=20
-attack_hidden_size=512  
+attack_hidden_size=64
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, trans
 test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 
 
-batch_size = 128 * 2
+batch_size = 128 * 4
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -142,15 +142,16 @@ measurement_labels=torch.cat([measurement_train_labels,measurement_test_labels])
 
 print("Measurement Sample Size:",len(measurement_images))
 
-scores=run_over_MIA(target_model, 
-                    train_loader, 
-                    test_loader, 
-                    measurement_images, 
-                    measurement_labels, 
-                    attack_hidden_size, 
-                    attack_epochs,
-                    attack_lr,
-                    device)
+
+scores= MIA(target_model, 
+            train_loader, 
+            test_loader, 
+            measurement_images, 
+            measurement_labels, 
+            attack_hidden_size, 
+            attack_epochs,
+            attack_lr,
+            device)
 
 tpr, fpr, roc = roc_curve(measurement_ref, scores)
 print("--------------")
