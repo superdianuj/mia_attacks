@@ -154,7 +154,7 @@ def attack_zone(target_data, target_model, in_features, out_features, num_epochs
             labels = labels.to(device)
             
             outputs = classifier(features)
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs, labels.float())
             
             optimizer.zero_grad()
             loss.backward()
