@@ -40,8 +40,8 @@ perc=0.0   # amount of actual training data available to the attacker
 perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
 meausurement_number=30 
 attack_lr=1e-1
-attack_epochs=50
-attack_hidden_size=128
+attack_epochs=20
+attack_hidden_size=8
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
