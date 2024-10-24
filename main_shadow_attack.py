@@ -139,15 +139,17 @@ measurement_labels=torch.cat([measurement_train_labels,measurement_test_labels])
 print("Measurement Sample Size:",len(measurement_images))
 
 
-scores=run_over_MIA(target_model,
-                        measurement_images,
-                        shadow_images,
-                        shadow_labels, 
-                        num_shadow_models,
-                        epochs_attack_model,
-                        lr_attack_model,
-                        attack_hidden_size,
-                        device)
+scores=run_over_MIA(target_model, 
+                    measurement_images, 
+                    shadow_images, 
+                    shadow_labels, 
+                    num_shadow_models, 
+                    epochs_shadow_model, 
+                    lr_shadow_model,  
+                    epochs_attack_model, 
+                    lr_attack_model, 
+                    attack_hidden_size, 
+                    device)
 
 
 
