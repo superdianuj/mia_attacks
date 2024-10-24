@@ -72,7 +72,7 @@ def get_losses(model, dataloader, device):
             outputs = model.feature(images)
             los=nn.CrossEntropyLoss(reduction='none')(outputs, labels.to(device))
             losses.append(los.cpu())
-    return torch.cat(losses)
+    return torch.cat(losses).unsqueeze(1)
 
 
 
@@ -88,7 +88,7 @@ def attack_zone(target_data, target_label, target_model, in_losses, out_losses, 
     dataset=TensorDataset(data, labels)
     train_loader=DataLoader(dataset, batch_size=128, shuffle=True)
     target_loss=nn.CrossEntropyLoss()(target_model(target_data.unsqueeze(0).to(device)), target_label.unsqueeze(0).to(device)).unsqueeze(0).detach()
-    classifier=nn.Sequential(nn.Linear(target_loss.shape[-1],attack_hidden_size),nn.ReLU(),nn.Linear(attack_hidden_size,1),nn.Sigmoid()).to(device) 
+    classifier=nn.Sequential(nn.Linear(1,attack_hidden_size),nn.ReLU(),nn.Linear(attack_hidden_size,1),nn.Sigmoid()).to(device) 
     criterion = nn.BCELoss()
     optimizer = optim.Adam(classifier.parameters(), lr=attack_lr)
     classifier.train()
