@@ -82,12 +82,11 @@ def shadow_zone(target_model, train_loader, test_loader, device='cuda'):
     return in_losses, out_losses
 
 
-def attack_zone(target_data, target_label, target_model, in_losses, out_losses, attack_hidden_size, attack_epochs, attack_lr, device='cuda'):
+def attack_zone(target_data_col, target_label_col, target_model, in_losses, out_losses, attack_hidden_size, attack_epochs, attack_lr, device='cuda'):
     data=torch.cat([in_losses,out_losses])
     labels=torch.tensor([1]*len(in_losses)+[0]*len(out_losses)).unsqueeze(1).to(device)
     dataset=TensorDataset(data, labels)
     train_loader=DataLoader(dataset, batch_size=128, shuffle=True)
-    target_loss=nn.CrossEntropyLoss()(target_model(target_data.unsqueeze(0).to(device)), target_label.unsqueeze(0).to(device)).unsqueeze(0).detach()
     classifier=nn.Sequential(nn.Linear(1,attack_hidden_size),nn.ReLU(),nn.Linear(attack_hidden_size,1),nn.Sigmoid()).to(device) 
     criterion = nn.BCELoss()
     optimizer = optim.Adam(classifier.parameters(), lr=attack_lr)
@@ -108,25 +107,19 @@ def attack_zone(target_data, target_label, target_model, in_losses, out_losses, 
             run_loss += loss.item()
         if epoch % 10 == 0 or epoch == attack_epochs - 1 or epoch == 0:
             print(f'Epoch {epoch+1}/{attack_epochs}, Attack Loss: {run_loss/len(train_loader):.4f}')
-                  
-    score = classifier(target_loss).item()
 
-
-
-def MIA(target_model, train_loader, test_loader, target_data, target_label, attack_hidden_size, attack_epochs, attack_lr, device='cuda'):
-    in_losses, out_losses = shadow_zone(target_model, train_loader, test_loader, device)
-    score = attack_zone(target_data, target_label, target_model, in_losses, out_losses, attack_hidden_size, attack_epochs, attack_lr, device)
-    return score
-
-
-
-
-def run_over_MIA(target_model, train_loader, test_loader, target_data_col, target_label_col, attack_hidden_size, attack_epochs, attack_lr, device='cuda'):
-    result_col=[]
+    scores=[]
     for i in range(len(target_data_col)):
         target_data=target_data_col[i]
         target_label=target_label_col[i]
-        result=MIA(target_model, train_loader, test_loader, target_data, target_label, attack_hidden_size, attack_epochs, attack_lr, device)
-        result_col.append(result)
-    return np.array(result_col)
+        target_loss=nn.CrossEntropyLoss()(target_model(target_data.unsqueeze(0).to(device)), target_label.unsqueeze(0).to(device)).unsqueeze(0).detach()
+        scores.append(classifier(target_loss).item())
+                  
+    return np.array(scores)
 
+
+
+def MIA(target_model, train_loader, test_loader, target_data_col, target_label_col, attack_hidden_size, attack_epochs, attack_lr, device='cuda'):
+    in_losses, out_losses = shadow_zone(target_model, train_loader, test_loader, device)
+    scores = attack_zone(target_data_col, target_label_col, target_model, in_losses, out_losses, attack_hidden_size, attack_epochs, attack_lr, device)
+    return scores
