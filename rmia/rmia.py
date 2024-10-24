@@ -214,7 +214,7 @@ def RMIA(target_data,
             shaodw_epochs=30,
             shadow_lr=1e-2,
             random_sample_number=100,
-            gamma=0.5):
+            gamma=0.5, device='cuda'):
     
 
     random_data,random_labs,prob_target,rand_probs_per_target=shadow_zone(shadow_data,shadow_labels,target_data,target_labels,num_shadow_models,shaodw_epochs,shadow_lr,random_sample_number)
