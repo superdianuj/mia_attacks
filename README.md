@@ -1,12 +1,19 @@
 # Implementation of MIA Attacks (PyTorch)
 
 ## Current Attacks
+* Optimal Attack (Attacker has full knowledge of training and testing losses of target)
 * Shadow Attack [1]
 * LiRA [2]
 * RMIA [3]
 * Quantile Regression [4]
 
+
 ## Commands
+
+### Optimal Attack
+```code
+python main_optimal.py
+```
 
 ### Shadow Attack
 ```code

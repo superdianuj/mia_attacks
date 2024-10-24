@@ -118,7 +118,6 @@ def shadow_zone(shadow_imgs,shadow_labs, num_shadow_models=2, epochs=100, lr=0.0
         in_features.append(get_confidences_shadow_model(model_in, train_data_in, train_labels_in, device))
         out_features.append(get_confidences_shadow_model(model_in, shadow_imgs2, shadow_labs2, device))
     
-
         # Exclude the target example from the dataset
         model_out = ShadowModel().to(device)
         train_data_out=shadow_imgs2
@@ -127,13 +126,13 @@ def shadow_zone(shadow_imgs,shadow_labs, num_shadow_models=2, epochs=100, lr=0.0
         in_features.append(get_confidences_shadow_model(model_out, train_data_in, train_labels_in, device))
         out_features.append(get_confidences_shadow_model(model_out, shadow_imgs2, shadow_labs2, device))
 
-
-
-
     in_features = torch.cat(in_features)
     out_features = torch.cat(out_features)
 
     return  in_features, out_features
+
+
+
 
 
 
@@ -143,7 +142,7 @@ def attack_zone(target_data, target_model, in_features, out_features, num_epochs
     labels=torch.tensor([1]*len(in_features)+[0]*len(out_features)).unsqueeze(1).to(device)
     dataset=TensorDataset(data, labels)
     train_loader=DataLoader(dataset, batch_size=128, shuffle=True)
-    target_feature=target_model.feature(target_data.unsqueeze(0).to(device))
+    target_feature=target_model.feature(target_data.unsqueeze(0).to(device)).detach()
     classifier=nn.Sequential(nn.Linear(target_feature.shape[-1],attack_hidden_size),nn.ReLU(),nn.Linear(attack_hidden_size,1),nn.Sigmoid()).to(device) 
     criterion = nn.BCELoss()
     optimizer = optim.Adam(classifier.parameters(), lr=lr)
