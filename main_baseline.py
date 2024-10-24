@@ -16,7 +16,7 @@ from baseline.shadow import *
 from baseline.model import *
 import argparse
 parser = argparse.ArgumentParser(description='MIA')
-parser.add_argument('--choice', type='str', default='loss', help='modality of attack model')
+parser.add_argument('--choice', type=str, default='loss', help='modality of attack model')
 args = parser.parse_args()
 if args.choice=='loss':
     from baseline.baseline_loss import *
