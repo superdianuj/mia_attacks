@@ -152,7 +152,7 @@ scores=RMIA(measurement_images,
             epochs_shadow_model,
             lr_shadow_model,
             random_sample_number,
-            gamma)
+            gamma, device)
 
 tpr, fpr, roc = roc_curve(measurement_ref, scores)
 print("--------------")
