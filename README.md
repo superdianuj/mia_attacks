@@ -40,6 +40,11 @@ python main_quantile.py
 ```
 
 
+![Untitled presentation](https://github.com/user-attachments/assets/d5ee2a8e-ebcc-48f0-85de-5d99b4e8b580)
+
+
+
+
 
 ## References
 [1] Shokri, R., Stronati, M., Song, C. and Shmatikov, V., 2017, May. Membership inference attacks against machine learning models. In 2017 IEEE symposium on security and privacy (SP) (pp. 3-18). IEEE.
