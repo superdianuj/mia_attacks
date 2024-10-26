@@ -36,12 +36,19 @@ hidden_size = 512
 output_size = 10
 epochs = 50
 lr = 1e-3
-perc=0.0   # amount of actual training data available to the attacker
-perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
 meausurement_number=10 
-attack_lr=1e-1
-attack_epochs=30
-attack_hidden_size=8
+if args.choice=='conf':
+    attack_epochs=50
+    attack_lr=1e-2
+    attack_hidden_size=8
+elif args.choice=='loss':
+    attack_epochs=30
+    attack_lr=1e-2
+    attack_hidden_size=8
+else:
+    attack_epochs=30
+    attack_lr=1e-3
+    attack_hidden_size=128
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
@@ -86,12 +93,12 @@ print(f"Test Accuracy: {test_accuracy:.2f}%")
 
 
 
-num_samples_train = int(perc*len(train_loader.dataset))
-num_samples_test=int(perc_test*len(test_loader.dataset))
+num_samples_train = int(0.0*len(train_loader.dataset))
+num_samples_test=int(0.0*len(test_loader.dataset))
 print("----------------------------------")
 print(f"Attackers knowledge:")
-print(f"Training Dataset Info: {num_samples_train}/{len(train_loader.dataset)} = {num_samples_train/len(train_loader.dataset)*100}%")
-print(f"Testing Dataset Info: {num_samples_test}/{len(test_loader.dataset)} = {num_samples_test/len(test_loader.dataset)*100}%")
+print(f"Training Dataset Info: = {100}%")
+print(f"Testing Dataset Info: = {100}%")
 print("----------------------------------")
 
 
