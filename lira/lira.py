@@ -155,17 +155,17 @@ def membership_inference(model, target_data, target_label, in_mean, in_std, out_
 
     # Calculate likelihoods assuming Gaussian distributions
     #------Version-1-------------------------------------------------------------------------------------
-    p_in = (1 / (in_std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((loss - in_mean) / in_std) ** 2)
-    p_out = (1 / (out_std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((loss - out_mean) / out_std) ** 2)
+    # p_in = (1 / (in_std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((loss - in_mean) / in_std) ** 2)
+    # p_out = (1 / (out_std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((loss - out_mean) / out_std) ** 2)
 
-    return p_in/(p_out+1e-30)
+    # return p_in/(p_out+1e-30)
     #----------------------------------------------------------------------------------------------------
 
     #-----Version-2--------------------------------------------------------------------------------------
-    # p_in = norm.pdf(loss, loc=in_mean, scale=in_std)
-    # p_out = norm.pdf(loss, loc=out_mean, scale=out_std)
+    p_in = norm.pdf(loss, loc=in_mean, scale=in_std)
+    p_out = norm.pdf(loss, loc=out_mean, scale=out_std)
 
-    # return p_in/(p_out+1e-30)
+    return p_in/(p_out+1e-30)
     #----------------------------------------------------------------------------------------------------
 
     #------Version-3-------------------------------------------------------------------------------------
