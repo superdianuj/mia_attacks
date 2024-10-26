@@ -35,7 +35,7 @@ epochs = 50
 lr = 1e-3
 perc=0.0   # amount of actual training data available to the attacker
 perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
-meausurement_number=30 
+meausurement_number=10
 n_quantile=100
 low_quantile=0.01
 high_quantile=0.99
@@ -43,7 +43,7 @@ use_logscale=False
 use_gaussian=False
 batch_size=32
 num_epochs=10
-learning_rate=0.001
+learning_rate=1e-3
 alpha=0.05
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
