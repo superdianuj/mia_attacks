@@ -183,7 +183,7 @@ def attack_zone(target_model,
                 random_labs,
                 prob_target,
                 rand_probs_per_target,
-                gamma=0.5):
+                gamma=0.5,device):
     scores=[]
     for i in range(target_data.size(0)):
         target_prob=prob_target[i]
@@ -217,6 +217,6 @@ def RMIA(target_data,
             gamma=0.5, device='cuda'):
     
 
-    random_data,random_labs,prob_target,rand_probs_per_target=shadow_zone(shadow_data,shadow_labels,target_data,target_labels,num_shadow_models,shaodw_epochs,shadow_lr,random_sample_number)
-    scores=attack_zone(target_model,target_data,target_labels,random_data,random_labs,prob_target,rand_probs_per_target,gamma)
+    random_data,random_labs,prob_target,rand_probs_per_target=shadow_zone(shadow_data,shadow_labels,target_data,target_labels,num_shadow_models,shaodw_epochs,shadow_lr,random_sample_number,device)
+    scores=attack_zone(target_model,target_data,target_labels,random_data,random_labs,prob_target,rand_probs_per_target,gamma,device)
     return scores
