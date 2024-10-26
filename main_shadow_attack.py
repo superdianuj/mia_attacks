@@ -31,7 +31,7 @@ num_shadow_models=2
 lr_shadow_model=1e-3
 epochs_shadow_model=20
 lr_attack_model=1e-3
-epochs_attack_model=100
+epochs_attack_model=50
 attack_hidden_size=100
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
