@@ -162,8 +162,8 @@ def membership_inference(model, target_data, target_label, in_mean, in_std, out_
     #----------------------------------------------------------------------------------------------------
 
     #-----Version-2--------------------------------------------------------------------------------------
-    # p_in = norm.pdf(loss, in_mean, in_std)
-    # p_out = norm.pdf(loss, out_mean, out_std)
+    # p_in = norm.pdf(loss, loc=in_mean, scale=in_std)
+    # p_out = norm.pdf(loss, loc=out_mean, scale=out_std)
 
     # return p_in/(p_out+1e-15)
     #----------------------------------------------------------------------------------------------------
