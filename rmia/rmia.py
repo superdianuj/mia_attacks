@@ -188,12 +188,12 @@ def attack_zone(target_model,
     for i in range(target_data.size(0)):
         target_prob=prob_target[i]
         target_prob_given_target_model=get_prob(target_model,target_data[i:i+1],target_labels[i:i+1],device)
-        lr_target=target_prob_given_target_model/(target_prob_given_target_model+1e-15)
+        lr_target=target_prob_given_target_model/(target_prob+1e-15)
         C=0
         for j in range(random_data.size(0)):
             rand_prob=rand_probs_per_target[i][j]
             rand_prob_given_target_model=get_prob(target_model,random_data[j:j+1],random_labs[j:j+1],device)
-            lr_rand=rand_prob_given_target_model/(rand_prob_given_target_model+1e-15)
+            lr_rand=rand_prob_given_target_model/(rand_prob+1e-15)
             C+=1 if lr_target/lr_rand>gamma else 0
 
         scores.append(C/random_data.size(0))
