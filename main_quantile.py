@@ -155,7 +155,7 @@ auxillary_dataset = TensorDataset(shadow_images, shadow_labels)
 axuillary_loader = DataLoader(auxillary_dataset, batch_size=32, shuffle=True)
 
 
-
+target_model=target_model.to('cpu')
 scores= mia_attack(target_model, 
                     measurement_images, 
                     measurement_labels, 
