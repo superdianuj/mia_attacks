@@ -66,7 +66,7 @@ def train_model_with_raw_tensors(model, train_data, train_labels, epochs=100, lr
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=bs, shuffle=True)
     criterion = nn.CrossEntropyLoss()
     model.train()
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
         for batch in train_loader:
             img, label = batch
