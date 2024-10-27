@@ -40,7 +40,25 @@ python main_quantile.py
 ```
 
 
-| Attack | ROC Curve (10 train samples & 10 test samples) |
+# Results
+
+## Settings
+**Target Model**: CNN (6 layers deep)
+
+**Dataset**: CIFAR-10
+
+**Target Model Train/Test Accuracy**: 99.23%/79.54%
+
+**Shadow Model Architecture**: Same as Target Model 
+
+**Measurment Size**: Measuring 10 samples from training set and 10 samples from testing set
+
+**Shadow Data Sampling**: 0% from training, 20% from testing set
+
+**Num Shadow Models**: 50
+
+## AUC Scores
+| Attack | ROC Curve |
 |-------|--------|
 | Baseline Attack Confidence | ![Baseline Attack Configuration](results/ROC_BaselineAttack_conf.png) |
 | Baseline Attack Loss | ![Baseline Attack Loss](results/ROC_BaselineAttack_loss.png) |
