@@ -42,11 +42,11 @@ python main_quantile.py
 
 | Attack | ROC Curve (10 train samples & 10 test samples) |
 |-------|--------|
-| Baseline Attack Confidence | ![Baseline Attack Configuration](results/ROC_Baseline_Attack_conf.png) |
-| Baseline Attack Loss | ![Baseline Attack Loss](results/ROC_Baseline_Attack_loss.png) |
-| Baseline Attack Probability | ![Baseline Attack Probability](results/ROC_Baseline_Attack_prob.png) |
-| LIRA Attack | ![LIRA Attack](results/ROC_LIRA_Attack.png) |
-| Quantile Attack | ![Quantile Attack](results/ROC_Quantile_Attack.png) |
+| Baseline Attack Confidence | ![Baseline Attack Configuration](results/ROC_BaselineAttack_conf.png) |
+| Baseline Attack Loss | ![Baseline Attack Loss](results/ROC_BaselineAttack_loss.png) |
+| Baseline Attack Probability | ![Baseline Attack Probability](results/ROC_BaselineAttack_prob.png) |
+| LIRA Attack | ![LIRA Attack](results/ROC_LIRAAttack.png) |
+| Quantile Attack | ![Quantile Attack](results/ROC_QuantileAttack.png) |
 | RMIA Attack | ![RMIA Attack](results/ROC_RMIA.png) |
 | Shadow Attack | ![Shadow Attack](results/ROC_Shadow.png) |
 
