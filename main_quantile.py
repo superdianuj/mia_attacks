@@ -35,19 +35,22 @@ epochs = 50
 lr = 1e-3
 perc=0.0   # amount of actual training data available to the attacker
 perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
-meausurement_number=10
+meausurement_number=10 # number of target samples to be measured from each training and non-training data
+auxillary_bs=32
 n_quantile=100
 low_quantile=0.01
 high_quantile=0.99
 use_logscale=False
 use_gaussian=False
 batch_size=32
-num_epochs=30
-learning_rate=1e-3
+quantile_model_epochs=30
+quantile_model_lr=1e-3
 alpha=0.05
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
+if not os.path.exists('results'):
+    os.makedirs('results')
 
 # Load CIFAR-10 dataset
 transform = transforms.Compose([
@@ -152,7 +155,7 @@ measurement_labels=torch.cat([measurement_train_labels,measurement_test_labels])
 print("Measurement Sample Size:",len(measurement_images))
 
 auxillary_dataset = TensorDataset(shadow_images, shadow_labels)
-axuillary_loader = DataLoader(auxillary_dataset, batch_size=32, shuffle=True)
+axuillary_loader = DataLoader(auxillary_dataset, batch_size=auxillary_bs, shuffle=True)
 
 
 target_model=target_model.to('cpu')
@@ -166,8 +169,8 @@ scores= mia_attack(target_model,
                     use_logscale=use_logscale,
                     use_gaussian=use_gaussian,
                     batch_size=batch_size,
-                    num_epochs=num_epochs,
-                    learning_rate=learning_rate,
+                    num_epochs=quantile_model_epochs,
+                    learning_rate=quantile_model_lr,
                     alpha=alpha,
                     device=torch.device('cuda')
                     )
@@ -184,5 +187,40 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig(f'ROC_Quantile Attack.png')
+plt.savefig(f'results/ROC_Quantile Attack.png')
 
+
+
+filename = "results/quantile_regression.txt"
+
+
+hyperparams = {
+    "input_shape": input_shape,
+    "channel": channel,
+    "num_classes": num_classes,
+    "hidden_size": hidden_size,
+    "output_size": output_size,
+    "epochs": epochs,
+    "lr": lr,
+    "perc": perc,
+    "perc_test": perc_test,
+    "measurement_number": meausurement_number,
+    "auxillary_bs": auxillary_bs,
+    "n_quantile": n_quantile,
+    "low_quantile": low_quantile,
+    "high_quantile": high_quantile,
+    "use_logscale": use_logscale,
+    "use_gaussian": use_gaussian,
+    "batch_size": batch_size,
+    "quantile_model_epochs": quantile_model_epochs,
+    "quantile_model_lr": quantile_model_lr,
+    "alpha": alpha,
+    "device": str(device)
+}
+
+
+os.makedirs("results", exist_ok=True)
+
+with open(filename, 'w') as f:
+    for param_name, param_value in hyperparams.items():
+        f.write(f"{param_name}: {param_value}\n")

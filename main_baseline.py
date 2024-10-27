@@ -28,6 +28,9 @@ else:
     raise ValueError("Invalid choice")
 
 
+
+if not os.path.exists('results'):
+    os.makedirs('results')
 #-----------------------------------------------------------------------------------
 input_shape = (3, 32, 32)
 channel = 3
@@ -36,7 +39,7 @@ hidden_size = 512
 output_size = 10
 epochs = 50
 lr = 1e-3
-meausurement_number=10 
+meausurement_number=10  # number of target samples to be measured from each training and non-training data
 if args.choice=='conf':
     attack_epochs=50
     attack_lr=1e-2
@@ -183,5 +186,30 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig(f'ROC_Baseline Attack_{args.choice}.png')
+plt.savefig(f'results/ROC_Baseline Attack_{args.choice}.png')
 
+
+filename = f"results/Baseline Attack_{args.choice}.txt"
+
+hyperparams = {
+    "input_shape": input_shape,
+    "channel": channel,
+    "num_classes": num_classes,
+    "hidden_size": hidden_size,
+    "output_size": output_size,
+    "epochs": epochs,
+    "lr": lr,
+    "measurement_number": meausurement_number,
+    "attack_epochs": attack_epochs,
+    "attack_lr": attack_lr,
+    "attack_hidden_size": attack_hidden_size,
+    "device": str(device)
+}
+
+
+os.makedirs("results", exist_ok=True)
+
+
+with open(filename, 'w') as f:
+    for param_name, param_value in hyperparams.items():
+        f.write(f"{param_name}: {param_value}\n")

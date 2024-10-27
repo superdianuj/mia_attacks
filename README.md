@@ -40,10 +40,15 @@ python main_quantile.py
 ```
 
 
-![Untitled presentation](https://github.com/user-attachments/assets/d5ee2a8e-ebcc-48f0-85de-5d99b4e8b580)
-
-
-
+| Attack | ROC Curve (10 train samples & 10 test samples) |
+|-------|--------|
+| Baseline Attack Confidence | ![Baseline Attack Configuration](results/ROC_Baseline_Attack_conf.png) |
+| Baseline Attack Loss | ![Baseline Attack Loss](results/ROC_Baseline_Attack_loss.png) |
+| Baseline Attack Probability | ![Baseline Attack Probability](results/ROC_Baseline_Attack_prob.png) |
+| LIRA Attack | ![LIRA Attack](results/ROC_LIRA_Attack.png) |
+| Quantile Attack | ![Quantile Attack](results/ROC_Quantile_Attack.png) |
+| RMIA Attack | ![RMIA Attack](results/ROC_RMIA.png) |
+| Shadow Attack | ![Shadow Attack](results/ROC_Shadow.png) |
 
 
 ## References

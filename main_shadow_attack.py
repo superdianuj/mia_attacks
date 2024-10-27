@@ -26,7 +26,7 @@ epochs = 50
 lr = 1e-3
 perc=0.0   # amount of actual training data available to the attacker
 perc_test=0.20    # amount of testing data available to the attacker ( similar distribution to training data)
-meausurement_number=10 
+meausurement_number=10  # number of target samples to be measured from each training and non-training data
 num_shadow_models=5
 lr_shadow_model=1e-3
 epochs_shadow_model=30
@@ -36,6 +36,8 @@ attack_hidden_size=128
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #-----------------------------------------------------------------------------------
 
+if not os.path.exists('results'):
+    os.makedirs('results')
 
 # Load CIFAR-10 dataset
 transform = transforms.Compose([
@@ -165,5 +167,36 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic')
 plt.legend(loc="lower right")
-plt.savefig(f'ROC_Shadow.png')
+plt.savefig(f'results/ROC_Shadow.png')
 
+
+
+
+filename = "results/Shadow_Attack.txt"  
+
+hyperparams = {
+    "input_shape": input_shape,
+    "channel": channel,
+    "num_classes": num_classes,
+    "hidden_size": hidden_size,
+    "output_size": output_size,
+    "epochs": epochs,
+    "lr": lr,
+    "perc": perc,
+    "perc_test": perc_test,
+    "measurement_number": meausurement_number,
+    "num_shadow_models": num_shadow_models,
+    "lr_shadow_model": lr_shadow_model,
+    "epochs_shadow_model": epochs_shadow_model,
+    "lr_attack_model": lr_attack_model,
+    "epochs_attack_model": epochs_attack_model,
+    "attack_hidden_size": attack_hidden_size,
+    "device": str(device)
+}
+
+
+os.makedirs("results", exist_ok=True)
+
+with open(filename, 'w') as f:
+    for param_name, param_value in hyperparams.items():
+        f.write(f"{param_name}: {param_value}\n")
