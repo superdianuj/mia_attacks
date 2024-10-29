@@ -57,6 +57,8 @@ python main_quantile.py
 
 **Num Shadow Models**: 50
 
+**Shadow Architecture**: Same as Target Model
+
 ## AUC Scores
 | Attack | ROC Curve |
 |-------|--------|
