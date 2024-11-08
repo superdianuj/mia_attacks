@@ -183,7 +183,8 @@ def attack_zone(target_model,
                 random_labs,
                 prob_target,
                 rand_probs_per_target,
-                gamma=0.5,device):
+                gamma=0.5,
+                device='cuda'):
     scores=[]
     for i in range(target_data.size(0)):
         target_prob=prob_target[i]
